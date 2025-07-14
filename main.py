@@ -69,7 +69,8 @@ def use_vmas_env(
     obs = env.reset()
     for s in range(n_steps):
         step += 1
-        print(f"Step {step}")
+        if s % 100 == 0:
+            print(f"Step {step}")
 
         actions = []
         for i, agent in enumerate(env.agents):
@@ -102,7 +103,7 @@ def use_vmas_env(
 
         obs = next_obs
 
-        if render:
+        if render and s % 10 == 0:  # Render every 10 steps
             frame = env.render(
                 mode="rgb_array",
                 agent_index_focus=None,  # Can give the camera an agent index to focus on
@@ -128,11 +129,12 @@ if __name__ == "__main__":
     use_vmas_env(
         scenario=scenario_name,
         render=True,
-        num_envs=32,
-        n_steps=100,
+        num_envs=128,
+        n_steps=1000,
         device="cuda" if torch.cuda.is_available() else "cpu",
         continuous_actions=False,
         random_action=False,
         # Environment specific variables
         n_agents=4,
+        penalise_by_time=True,
     )
