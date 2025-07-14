@@ -87,12 +87,14 @@ def use_vmas_env(
 
     if render:
         from moviepy import ImageSequenceClip
-        fps=30
+        import os
+        fps = 30
+        os.makedirs("images", exist_ok=True)
         clip = ImageSequenceClip(frame_list, fps=fps)
-        clip.write_gif(f'{scenario_name}.gif', fps=fps)
+        clip.write_gif(os.path.join("images", f"{scenario_name}.gif"), fps=fps)
 
 if __name__ == "__main__":
-    scenario_name="waterfall"
+    scenario_name="dispersion"
     use_vmas_env(
         scenario=scenario_name,
         render=True,
