@@ -43,4 +43,4 @@ if __name__ == "__main__":
     trained_agents = trainer.train_agents(agents)
 
     # Render gif
-    trainer.render_gif(trained_agents, render_every=10, gif_path=f"images/{scenario_name}_agenttrainer.gif", fps=30)
+    trainer.render_gif(trained_agents, render_every=2, gif_path=f"images/{scenario_name}_agenttrainer.gif", fps=30)

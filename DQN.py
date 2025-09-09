@@ -88,7 +88,7 @@ class DQNAgent:
         q_values = self.policy_net(obs).gather(1, action)
         with torch.no_grad():
             next_q_values = self.target_net(next_obs).max(1, keepdim=True)[0]
-            target = reward + (1 - done) * self.gamma * next_q_values
+            target = reward.view(next_q_values.shape) + (1 - done) * self.gamma * next_q_values
 
         loss = self.loss_fn(q_values, target)
         self.optimizer.zero_grad()
