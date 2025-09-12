@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 import random
+from ReplayBuffer import ReplayBuffer
 
 class DQNNetwork(nn.Module):
     def __init__(self, obs_dim, action_dim, hidden_dim=128):
@@ -29,7 +30,9 @@ class DQNAgent:
         gamma=0.99,
         epsilon_start=1.0,
         epsilon_end=0.05,
-        epsilon_decay=500
+        epsilon_decay=500,
+        buffer_size=10000,
+        batch_size=32
     ):
         self.device = device
         self.obs_dim = obs_dim
@@ -39,6 +42,9 @@ class DQNAgent:
         self.epsilon_end = epsilon_end
         self.epsilon_decay = epsilon_decay
         self.steps_done = 0
+        self.buffer_size = buffer_size
+        self.batch_size = batch_size
+        self.replay_buffer = []
 
         self.policy_net = DQNNetwork(obs_dim, action_dim, hidden_dim).to(device)
         self.target_net = DQNNetwork(obs_dim, action_dim, hidden_dim).to(device)
@@ -47,6 +53,8 @@ class DQNAgent:
 
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=lr)
         self.loss_fn = nn.MSELoss()
+
+        self.buffer = ReplayBuffer(buffer_size, batch_size, device)
 
     def choose_action(self, obs, eval_mode=False):
         """
@@ -74,11 +82,18 @@ class DQNAgent:
             actions = torch.randint(0, self.action_dim, (batch_size, 1), device=self.device)
         return actions
 
-    def update(self, batch):
+    def update(self, transition):
         """
-        batch: dict with keys 'obs', 'action', 'reward', 'next_obs', 'done'
-        All values are torch tensors.
+        transition: dict with keys 'obs', 'action', 'reward', 'next_obs', 'done'
         """
+        # Add transition to replay buffer
+        self.buffer.add(transition)
+            
+        # Sample batch from replay buffer
+        batch = self.buffer.sample()
+        if batch is None:
+            return
+
         obs = batch['obs'].to(self.device)
         action = batch['action'].to(self.device)
         reward = batch['reward'].to(self.device)

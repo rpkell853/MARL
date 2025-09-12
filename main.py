@@ -1,10 +1,3 @@
-from vmas.simulator.scenario import BaseScenario
-from typing import Union
-import time
-import torch
-from vmas import make_env
-from vmas.simulator.core import Agent
-import numpy as np
 from DQN import DQNAgent
 from AgentTrainer import AgentTrainer
 
@@ -43,4 +36,5 @@ if __name__ == "__main__":
     trained_agents = trainer.train_agents(agents)
 
     # Render gif
-    trainer.render_gif(trained_agents, render_every=2, gif_path=f"images/{scenario_name}_agenttrainer.gif", fps=30)
+    for i in range(3):
+        trainer.render_gif(trained_agents, render_every=2, env_seed=i, gif_path=f"images/{scenario_name}_agenttrainer.gif", fps=30)

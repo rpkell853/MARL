@@ -4,6 +4,7 @@ import os
 from vmas import make_env
 from moviepy import ImageSequenceClip
 from tqdm import trange
+import random
 
 class AgentTrainer:
     def __init__(
@@ -15,6 +16,8 @@ class AgentTrainer:
         scenario,
         continuous_actions: bool,
         random_action: bool,
+        buffer_size=10000,  # Add buffer size parameter
+        batch_size=32,      # Add batch size parameter
         **kwargs
     ):
         self.render = render
@@ -25,9 +28,10 @@ class AgentTrainer:
         self.continuous_actions = continuous_actions
         self.random_action = random_action
         self.env_kwargs = kwargs
+        self.buffer_size = buffer_size
+        self.batch_size = batch_size
 
     def train_agents(self, agents):
-
         env = make_env(
             scenario=self.scenario,
             num_envs=self.num_envs,
@@ -36,7 +40,7 @@ class AgentTrainer:
             seed=0,
             **self.env_kwargs
         )
-        replay_buffer = []
+        
         obs = env.reset()
         for s in trange(self.n_steps, desc="Training Agents"):
             actions = []
@@ -44,8 +48,11 @@ class AgentTrainer:
                 agent_obs = obs[i]
                 action = agents[i].choose_action(agent_obs)
                 actions.append(action)
+                
             actions = [a.cpu() if isinstance(a, torch.Tensor) else a for a in actions]
             next_obs, rews, dones, info = env.step(actions)
+            
+            # Store transitions and update agents
             for i, agent in enumerate(env.agents):
                 transition = {
                     'obs': obs[i].to(self.device) if isinstance(obs[i], torch.Tensor) else torch.tensor(obs[i], dtype=torch.float32, device=self.device).unsqueeze(0),
@@ -54,22 +61,19 @@ class AgentTrainer:
                     'next_obs': next_obs[i].to(self.device) if isinstance(next_obs[i], torch.Tensor) else torch.tensor(next_obs[i], dtype=torch.float32, device=self.device).unsqueeze(0),
                     'done': dones[i].float().to(self.device) if isinstance(dones[i], torch.Tensor) else torch.tensor([float(dones[i])], dtype=torch.float32, device=self.device)
                 }
-                replay_buffer.append((i, transition))
-            for i, agent in enumerate(env.agents):
-                agent_transitions = [t for idx, t in replay_buffer if idx == i]
-                if len(agent_transitions) > 0:
-                    batch = agent_transitions[-1]
-                    agents[i].update(batch)
+                agents[i].update(transition)
+                    
             obs = next_obs
+            
         return agents
 
-    def render_gif(self, agents, render_every=1, gif_path="images/agent_trainer.gif", fps=30):
+    def render_gif(self, agents, render_every=1, env_seed=0, gif_path="images/agent_trainer.gif", fps=30):
         env = make_env(
             scenario=self.scenario,
             num_envs=1,
             device=self.device,
             continuous_actions=self.continuous_actions,
-            seed=0,
+            seed=env_seed,
             **self.env_kwargs
         )
         obs = env.reset()
